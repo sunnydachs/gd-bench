@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gd-bench"
-version = "0.1.0"
+version = "0.1.1"
 description = "Detect GDScript array-type performance pitfalls and generate Godot micro-benchmarks for them. Read-only scanner, deterministic."
 readme = "README.md"
 requires-python = ">=3.11"

@@ -30,7 +30,7 @@ RE_VAR_TYPED = re.compile(r"^\s*var\s+\w+\s*:\s*Array\s*\[\s*\w+\s*\]")
 RE_VAR_UNTYPED_ARRAY = re.compile(r"^\s*var\s+\w+\s*=\s*\[")
 RE_VAR_PACKED = re.compile(r"^\s*var\s+\w+\s*:\s*(" + "|".join(PACKED_TYPES) + r")\b")
 # Dictionary を Array 代わりに使う（連番キーへの代入）。d[0] = / d[i] = 形式。
-RE_DICT_INDEXED = re.compile(r"^\s*(\w+)\[(?:\d+|\w+)\]\s*=")
+RE_DICT_INDEXED = re.compile(r"^\s*(\w+)\[(\d+|\w+)\]\s*=")
 RE_DICT_DECL = re.compile(r"^\s*var\s+(\w+)\s*(?::\s*Dictionary)?\s*=\s*\{\}")
 
 
@@ -63,6 +63,9 @@ def scan_source(source: str, source_path: str = "<text>") -> list:
     out = []
     # dict_as_array 用: 連番代入のレシーバが {} で宣言された変数かを追跡
     dict_vars = set()
+    # ループ変数のバインディング: "for i in range(...)" で回っている int 変数
+    # （その変数が辞書のキーに使われていたら連番キーの可能性が高い）
+    loop_vars = set()
     for i, line in enumerate(source.splitlines(), 1):
         stripped = line.strip()
         if stripped.startswith("#"):
@@ -70,6 +73,12 @@ def scan_source(source: str, source_path: str = "<text>") -> list:
         m = RE_DICT_DECL.match(line)
         if m:
             dict_vars.add(m.group(1))
+            continue
+        # "for x in range(...)": x は int ループ変数（連番キーの可能性）。
+        # "for x in <collection>:" は要素列挙（キーはオブジェクト/名前）なので対象外。
+        lm = re.match(r"^\s*for\s+(\w+)\s+in\s+range\s*\(", line)
+        if lm:
+            loop_vars.add(lm.group(1))
             continue
         if RE_VAR_PACKED.match(line):
             out.append(Finding(i, "packed_array", stripped, NOTES["packed_array"]))
@@ -82,7 +91,11 @@ def scan_source(source: str, source_path: str = "<text>") -> list:
             continue
         dm = RE_DICT_INDEXED.match(line)
         if dm and dm.group(1) in dict_vars:
-            out.append(Finding(i, "dict_as_array", stripped, NOTES["dict_as_array"]))
+            key = dm.group(2)
+            # 連番キー判定（保守的）: int リテラル、または range() ループ変数のみ。
+            # 名前付きキー（String id 等）は正当な Dictionary 使用なので検出しない。
+            if re.fullmatch(r"\d+", key) or key in loop_vars:
+                out.append(Finding(i, "dict_as_array", stripped, NOTES["dict_as_array"]))
     return out
 
 
