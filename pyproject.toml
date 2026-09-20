@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gd-bench"
+version = "0.1.0"
+description = "Detect GDScript array-type performance pitfalls and generate Godot micro-benchmarks for them. Read-only scanner, deterministic."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+gd-bench = "gd_bench.cli:main"
