@@ -1,37 +1,51 @@
 # gd-bench
 
-GDScript の配列型パフォーマンス問題を検出し、Godot マイクロベンチを生成する CLI。読み取り専用・決定論的・依存ゼロ。
+**Detect GDScript array-type performance pitfalls and generate Godot micro-benchmarks for them. Read-only scanner, deterministic, zero-dep.**
 
-## なぜ存在するか
+English | [日本語](README.ja.md)
 
-GDScript の「配列型の選択」は、公式ドキュメント内でも記述が矛盾している（[godot-docs #10300](https://github.com/godotengine/godot-docs/issues/10300) 修正議論中）:
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
+[![Tests](https://img.shields.io/badge/tests-17%20passing-brightgreen.svg)](tests/)
 
-- GDScript リファレンス（旧記載）: 「Packed arrays は atomic で generic arrays より**遅い**」
-- クラスリファレンス: 「Packed arrays は同型の typed arrays 比で **faster** + 低メモリ」
+<!-- Sync with README.ja.md as of the initial commit (see git log for the latest sync point) -->
 
-実際のパフォーマンスは操作次第で変わるため、このツールは「指摘 → 実測ベンチ」の 2 段構えで答える。書き換え前に必ず計測できる。
+## Why it exists
 
-## 検出する 4 パターン
+The "array-type choice" in GDScript is contradicted inside the official
+documentation itself ([godot-docs #10300](https://github.com/godotengine/godot-docs/issues/10300),
+still being discussed):
 
-| 種類 | 例 | 指摘 |
+- GDScript reference (older wording): "Packed arrays are atomic and **slower**
+  than generic arrays"
+- Class reference: "Packed arrays are **faster** than typed arrays of the same
+  element type + lower memory"
+
+Actual performance depends on the operation, so this tool answers with a
+two-step approach: **finding → measured benchmark**. You can always measure
+before you rewrite.
+
+## The 4 patterns it detects
+
+| Kind | Example | Note |
 |---|---|---|
-| UNTYPED ARRAY | `var x = [1, 2, 3]` | Variant soup — 反復が最も遅い |
-| TYPED ARRAY | `var x: Array[int] = ...` | コンパイル時チェックあり。Packed* なら同型要素でより速い |
-| PACKED ARRAY | `var x: PackedInt32Array = ...` | 連続メモリ・速い（良い） |
-| DICT AS ARRAY | `var d = {}` + `d[i] = ...` | 連番キーの辞書は素の Array より ~2x 遅い |
+| UNTYPED ARRAY | `var x = [1, 2, 3]` | Variant soup — slowest to iterate |
+| TYPED ARRAY | `var x: Array[int] = ...` | Compile-time checks; Packed* is faster for the same element type |
+| PACKED ARRAY | `var x: PackedInt32Array = ...` | Contiguous memory, fast (good) |
+| DICT AS ARRAY | `var d = {}` + `d[i] = ...` | Sequential-key Dictionary is ~2x slower than a plain Array |
 
-## 使い方
+## Usage
 
 ```bash
 pip install gd-bench
 
-gd-bench .                 # カレントの .gd をスキャン
-gd-bench . --json          # 機械可読出力
-gd-bench . --gen-bench     # 検出箇所の Godot マイクロベンチを ./gd-bench-out/ に生成
-gd-bench . --bench-n 50000 # ベンチの要素数を変更（default 100000）
+gd-bench .                 # scan the current .gd files
+gd-bench . --json          # machine-readable output
+gd-bench . --gen-bench     # generate Godot micro-benchmarks into ./gd-bench-out/
+gd-bench . --bench-n 50000 # change benchmark size (default 100000)
 ```
 
-生成されたベンチは Godot 4 の headless で走る:
+Generated benchmarks run on Godot 4 headless:
 
 ```bash
 godot --headless --script gd-bench-out/bench_gd_untyped_array_4.gd
@@ -41,12 +55,12 @@ godot --headless --script gd-bench-out/bench_gd_untyped_array_4.gd
 #   ratio: 1.61x
 ```
 
-## 設計原則
+## Design principles
 
-- **読み取り専用**: ソースを書き換えない。報告とベンチ生成のみ
-- **決定論的**: LLM 不使用。同じ入力なら必ず同じ報告・同じベンチが出る
-- **依存ゼロ**: Python 標準ライブラリのみ（regex + dataclasses）
+- **Read-only**: never rewrites your source. Reporting and benchmark generation only
+- **Deterministic**: no LLM. Same input always produces the same report and benchmarks
+- **Zero-dependency**: Python standard library only (regex + dataclasses)
 
-## ライセンス
+## License
 
 MIT
