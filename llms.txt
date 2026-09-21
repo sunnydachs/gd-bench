@@ -1,0 +1,21 @@
+# gd-bench
+
+> Detect GDScript array-type performance pitfalls (untyped/typed/packed arrays,
+> dict-as-array) and generate Godot micro-benchmarks for them. Read-only scanner,
+> deterministic, zero dependencies. Python >= 3.11, MIT.
+
+The GDScript reference and class reference contradict each other on array-type
+performance (godot-docs #10300); actual performance is operation-dependent, so the
+tool answers with finding → measured benchmark instead of a blanket rule.
+
+## Install and run
+
+- Install: `pip install git+https://github.com/sunnydachs/gd-bench` (or clone; installs the `gd-bench` console script)
+- `gd-bench [ROOT]` — scan .gd files, human-readable findings
+- `gd-bench [ROOT] --json` — machine-readable report (files, findings, status_counts)
+- `gd-bench [ROOT] --gen-bench` — write Godot micro-benchmarks into ./gd-bench-out/
+- `godot --headless --script <generated>.gd` — run a generated benchmark
+
+## Optional
+
+- [Source code](https://github.com/sunnydachs/gd-bench): zero-dependency Python package, pytest suite, CI on Python 3.11-3.13.
