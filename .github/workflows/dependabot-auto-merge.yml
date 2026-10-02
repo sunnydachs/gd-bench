@@ -17,8 +17,17 @@ jobs:
       - name: Fetch metadata
         id: meta
         uses: dependabot/fetch-metadata@v3
-      - name: Enable auto-merge
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Gate the merge on the update type. Without this condition the job enables
+      # auto-merge for every Dependabot PR, majors included, which is not what the
+      # workflow name promises.
+      - name: Auto-merge patch and minor updates
+        if: |
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
